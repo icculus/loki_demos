@@ -1,6 +1,6 @@
 
 TARGET  := loki_demos
-VERSION := \"1.0b\"
+VERSION := \"1.0c\"
 OBJS	:= loki_demos.o play_movie.o loki_launchurl.o
 CFLAGS  := -g -Wall -DVERSION=$(VERSION)
 CFLAGS  += $(shell sdl-config --cflags)
