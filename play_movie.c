@@ -24,7 +24,7 @@
 #include <smpeg/smpeg.h>
 #include "play_movie.h"
 
-//#define DOUBLE_SIZE_MOVIE
+#define DOUBLE_SIZE_MOVIE
 
 void play_movie(const char *movie, int depth)
 {
@@ -36,6 +36,11 @@ void play_movie(const char *movie, int depth)
     SDL_AudioSpec audiofmt;
     Uint16 format;
     int freq, channels;
+
+    /* For this version, we'll be save and disable hardware acceleration */
+    if ( ! getenv("SDL_VIDEO_YUV_HWACCEL") ) {
+        putenv("SDL_VIDEO_YUV_HWACCEL=0");
+    }
 
     /* Load the movie */
     mpeg = SMPEG_new(movie, &info, 0);
