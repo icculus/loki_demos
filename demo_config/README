@@ -1,0 +1,41 @@
+
+This is a small application which takes a set of command line parameters
+and builds a UI to allow the user to choose their options, and generates
+a command line for them.
+
+The preferences file has the following format:
+
+Title
+Option1
+Option2
+...
+
+Each option line represents a command line option, in the format:
+BOOL <label> <true-option> <false-option> <value>
+LABEL <label>
+FILE <label> <formatted option> <value> <enabled>
+
+For example, Heavy Gear II has the following help:
+Usage: hg2 [options]
+     [-h | --help]           Display this help message
+     [-v | --version]        Display the game version
+     [-f | --fullscreen]     Run the game fullscreen
+     [-w | --windowed]       Run the game in a window
+     [-s | --nosound]        Do not access the soundcard
+     [-c | --nocdrom]        Do not access the CD-ROM
+     [-o | --opengl]         Run Heavy Gear 2 with this OpenGL library
+     [-u | --usecvas]        Run Heavy Gear 2 using compiled vertex arrays
+     [-t | --software]       Disable software rendering mode abort
+     [-g | --fog]            Turn OpenGL fog on
+     [-x | --vertex]         Turn vertex fog on
+
+We might create a preferences file with the following contents:
+
+Heavy Gear II
+BOOL "Fullscreen Mode"  "--fullscreen"  "--windowed"    TRUE
+BOOL "Sound Enabled"    ""              "--nosound"     TRUE
+LABEL "OpenGL Options:"
+FILE "OpenGL Library"   "--opengl %s"   "libGL.so.1"    FALSE
+BOOL "Use compiled vertex arrays"   "--usecvas" ""      FALSE
+BOOL "Enable OpenGL fog"            "--fog"     ""      FALSE
+BOOL "Enable vertex fog"            "--vertex"  ""      FALSE
