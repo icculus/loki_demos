@@ -22,11 +22,17 @@ static char *title;
 static struct prefentry {
     enum {
         BOOL_PREF,
+        SEPARATOR_PREF,
         LABEL_PREF,
+        RADIO_PREF,
         FILE_PREF
     } type;
 
     union {
+        struct {
+            char *label;
+        } label_prefs;
+
         struct {
             char *label;
             char *true_option;
@@ -36,7 +42,15 @@ static struct prefentry {
 
         struct {
             char *label;
-        } label_prefs;
+            gboolean enabled;
+            struct radio_option {
+                char *label;
+                char *value;
+                gboolean enabled;
+                GtkWidget *button;
+                struct radio_option *next;
+            } *options, *tail_option;
+        } radio_prefs;
 
         struct {
             char *label;
@@ -103,6 +117,47 @@ static int parse_line(char *line, char **argv)
 	return(argc);
 }
 
+static void add_label_option(char **args)
+{
+    struct prefentry *entry;
+
+    entry = (struct prefentry *)malloc(sizeof *entry);
+    if ( entry ) {
+        /* Fill the data */
+        entry->type = LABEL_PREF;
+        entry->data.label_prefs.label = strdup(args[1]);
+        entry->next = NULL;
+
+        /* Add it to our list */
+        if ( last_entry ) {
+            last_entry->next = entry;
+        } else {
+            prefs = entry;
+        }
+        last_entry = entry;
+    }
+}
+
+static void add_separator_option(char **args)
+{
+    struct prefentry *entry;
+
+    entry = (struct prefentry *)malloc(sizeof *entry);
+    if ( entry ) {
+        /* Fill the data */
+        entry->type = SEPARATOR_PREF;
+        entry->next = NULL;
+
+        /* Add it to our list */
+        if ( last_entry ) {
+            last_entry->next = entry;
+        } else {
+            prefs = entry;
+        }
+        last_entry = entry;
+    }
+}
+
 static void add_bool_option(char **args)
 {
     struct prefentry *entry;
@@ -131,15 +186,51 @@ static void add_bool_option(char **args)
     }
 }
 
-static void add_label_option(char **args)
+static void add_radio_option(char **args)
 {
     struct prefentry *entry;
+    int i;
 
     entry = (struct prefentry *)malloc(sizeof *entry);
     if ( entry ) {
         /* Fill the data */
-        entry->type = LABEL_PREF;
-        entry->data.label_prefs.label = strdup(args[1]);
+        entry->type = RADIO_PREF;
+        entry->data.radio_prefs.label = strdup(args[1]);
+        if ( strcasecmp(args[2], "always") == 0 ) {
+            entry->data.radio_prefs.enabled = TRUE*2;
+        } else
+        if ( strcasecmp(args[2], "true") == 0 ) {
+            entry->data.radio_prefs.enabled = TRUE;
+        } else {
+            entry->data.radio_prefs.enabled = FALSE;
+        }
+        entry->data.radio_prefs.options = NULL;
+        entry->data.radio_prefs.tail_option = NULL;
+        for ( i=3; args[i] && args[i+1] && args[i+2] && args[i+3]; i += 4 ) {
+            struct radio_option *option;
+
+            if ( strcasecmp(args[i], "OPTION") != 0 ) {
+                /* Urkh, syntax error.. how to report it? */
+                continue;
+            }
+            option = (struct radio_option *)malloc(sizeof *option);
+            if ( option ) {
+                option->label = strdup(args[i+1]);
+                option->value = strdup(args[i+2]);
+                if ( strcasecmp(args[i+3], "true") == 0 ) {
+                    option->enabled = TRUE;
+                } else {
+                    option->enabled = FALSE;
+                }
+                option->next = NULL;
+                if ( entry->data.radio_prefs.tail_option ) {
+                    entry->data.radio_prefs.tail_option->next = option;
+                } else {
+                    entry->data.radio_prefs.options = option;
+                }
+                entry->data.radio_prefs.tail_option = option;
+            }
+        }
         entry->next = NULL;
 
         /* Add it to our list */
@@ -186,6 +277,7 @@ int load_prefs(const char *product)
     FILE *fp;
     int lineno;
     char line[1024];
+    int length;
     int nargs;
     char **args;
 
@@ -211,9 +303,15 @@ int load_prefs(const char *product)
 
     /* Load the rest of the options */
     lineno = 0;
-    while ( fgets(line, sizeof(line), fp) ) {
+    line[0] = 0;
+    length = 0;
+    while ( fgets(&line[length], sizeof(line)-length, fp) ) {
         line[strlen(line)-1] = '\0';
         ++lineno;
+        if ( line[strlen(line)-1] == '\\' ) {
+            length = strlen(line)-1;
+            continue;
+        }
 
 	    /* Parse it into arguments */
 	    nargs = parse_line(line, NULL);
@@ -226,6 +324,16 @@ int load_prefs(const char *product)
 	    }
 	    parse_line(line, args);
 
+        if ( strcasecmp(args[0], "LABEL") == 0 ) {
+            if ( nargs == 2 ) {
+                add_label_option(args);
+            } else {
+                fprintf(stderr, "Line %d: LABEL requires an argument\n",lineno);
+            }
+        } else
+        if ( strcasecmp(args[0], "SEPARATOR") == 0 ) {
+            add_separator_option(args);
+        } else
         if ( strcasecmp(args[0], "BOOL") == 0 ) {
             if ( nargs == 5 ) {
                 add_bool_option(args);
@@ -233,11 +341,11 @@ int load_prefs(const char *product)
                 fprintf(stderr, "Line %d: BOOL requires 4 arguments\n", lineno);
             }
         } else
-        if ( strcasecmp(args[0], "LABEL") == 0 ) {
-            if ( nargs == 2 ) {
-                add_label_option(args);
+        if ( strcasecmp(args[0], "RADIO") == 0 ) {
+            if ( nargs >= 7 ) {
+                add_radio_option(args);
             } else {
-                fprintf(stderr, "Line %d: LABEL requires an argument\n",lineno);
+                fprintf(stderr, "Line %d: RADIO requires more arguments\n", lineno);
             }
         } else
         if ( strcasecmp(args[0], "FILE") == 0 ) {
@@ -250,6 +358,8 @@ int load_prefs(const char *product)
             fprintf(stderr, "Line %d: Unknown keyword\n", lineno);
         }
         free(args);
+
+        length = 0;
     }
     fclose(fp);
     return(0);
@@ -280,6 +390,12 @@ int save_prefs(const char *product)
     
     for ( entry = prefs; entry; entry = entry->next ) {
         switch(entry->type) {
+            case LABEL_PREF:
+                fprintf(fp, "LABEL \"%s\"\n", entry->data.bool_prefs.label);
+                break;
+            case SEPARATOR_PREF:
+                fprintf(fp, "SEPARATOR\n");
+                break;
             case BOOL_PREF:
                 fprintf(fp, "BOOL \"%s\" \"%s\" \"%s\" %s\n",
                     entry->data.bool_prefs.label,
@@ -287,8 +403,26 @@ int save_prefs(const char *product)
                     entry->data.bool_prefs.false_option,
                     entry->data.bool_prefs.value ? "TRUE" : "FALSE");
                 break;
-            case LABEL_PREF:
-                fprintf(fp, "LABEL \"%s\"\n", entry->data.bool_prefs.label);
+            case RADIO_PREF:
+                fprintf(fp, "RADIO \"%s\" %s \\\n",
+                    entry->data.radio_prefs.label,
+                    entry->data.radio_prefs.enabled ? 
+                    (entry->data.radio_prefs.enabled == TRUE*2 ? 
+                        "ALWAYS" : "TRUE") : "FALSE");
+                { struct radio_option *option;
+                    for ( option = entry->data.radio_prefs.options;
+                          option;
+                          option = option->next ) {
+                        fprintf(fp, "OPTION \"%s\" \"%s\" %s",
+                            option->label, option->value,
+                            option->enabled ? "TRUE" : "FALSE");
+                        if ( option->next ) {
+                            fprintf(fp, " \\\n");
+                        } else {
+                            fprintf(fp, "\n");
+                        }
+                    }
+                }
                 break;
             case FILE_PREF:
                 free(entry->data.file_prefs.value);
@@ -323,6 +457,10 @@ int save_prefs(const char *product)
         }
         for ( entry = prefs; entry; entry = entry->next ) {
             switch(entry->type) {
+                case LABEL_PREF:
+                    break;
+                case SEPARATOR_PREF:
+                    break;
                 case BOOL_PREF:
                     strcat(command, " ");
                     if ( entry->data.bool_prefs.value ) {
@@ -331,7 +469,18 @@ int save_prefs(const char *product)
                         strcat(command, entry->data.bool_prefs.false_option);
                     }
                     break;
-                case LABEL_PREF:
+                case RADIO_PREF:
+                    if ( entry->data.radio_prefs.enabled ) {
+                        struct radio_option *option;
+                        for ( option = entry->data.radio_prefs.options;
+                              option;
+                              option = option->next ) {
+                            if ( option->enabled ) {
+                                strcat(command, " ");
+                                strcat(command, option->value);
+                            }
+                        }
+                    }
                     break;
                 case FILE_PREF:
                     if ( entry->data.file_prefs.enabled ) {
@@ -350,6 +499,7 @@ int save_prefs(const char *product)
 }
 
 static GladeXML *prefs_glade;
+static GladeXML *readme_glade = NULL;
 static GladeXML *file_glade = NULL;
 
 static void message(const char *text)
@@ -371,6 +521,60 @@ static void message(const char *text)
 
     /* Clean up the glade file */
     gtk_object_unref(GTK_OBJECT(message_glade));
+}
+
+static gboolean load_file( GtkText *widget, GdkFont *font, const char *file )
+{
+    FILE *fp;
+    int pos;
+    
+    gtk_editable_delete_text(GTK_EDITABLE(widget), 0, -1);
+    fp = fopen(file, "r");
+    if ( fp ) {
+        char line[BUFSIZ];
+        pos = 0;
+        while ( fgets(line, BUFSIZ-1, fp) ) {
+            gtk_text_insert(widget, font, NULL, NULL, line, strlen(line));
+        }
+        fclose(fp);
+    }
+    gtk_editable_set_position(GTK_EDITABLE(widget), 0);
+
+    return (fp != NULL);
+}
+
+void view_readme_slot( GtkWidget* w, gpointer data )
+{
+    GtkWidget *readme;
+    GtkWidget *widget;
+    char readme_file[PATH_MAX];
+    
+    if ( ! readme_glade ) {
+        readme_glade = glade_xml_new(PREFS_GLADE, "readme_dialog");
+        glade_xml_signal_autoconnect(readme_glade);
+        readme = glade_xml_get_widget(readme_glade, "readme_dialog");
+        widget = glade_xml_get_widget(readme_glade, "readme_area");
+        if ( readme && widget ) {
+            gtk_widget_hide(readme);
+            sprintf(readme_file, "demos/%s/README", product);
+            load_file(GTK_TEXT(widget), NULL, readme_file);
+            gtk_widget_show(readme);
+        }
+    }
+}
+
+void close_readme_slot( GtkWidget* w, gpointer data )
+{
+    GtkWidget *widget;
+    
+    if ( readme_glade ) {
+        widget = glade_xml_get_widget(readme_glade, "readme_dialog");
+        if ( widget ) {
+            gtk_widget_hide(widget);
+        }
+        gtk_object_unref(GTK_OBJECT(readme_glade));
+        readme_glade = NULL;
+    }
 }
 
 static void close_file_dialog(void)
@@ -432,6 +636,8 @@ void quit_ui(void)
         gtk_object_unref(GTK_OBJECT(prefs_glade));
         prefs_glade = NULL;
     }
+    close_file_dialog();
+    close_readme_slot(NULL, NULL);
 }
 
 void cancel_button_slot(GtkWidget *w, gpointer data)
@@ -483,6 +689,35 @@ static void bool_toggle_option( GtkWidget* widget, gpointer func_data)
     }
 }
 
+static void radio_toggle_option( GtkWidget* widget, gpointer func_data)
+{
+    struct prefentry *entry = (struct prefentry *)func_data;
+    struct radio_option *option;
+
+    if ( gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ) {
+        entry->data.radio_prefs.enabled = TRUE;
+    } else {
+        entry->data.radio_prefs.enabled = FALSE;
+    }
+    for ( option = entry->data.radio_prefs.options;
+          option;
+          option = option->next ) {
+        gtk_widget_set_sensitive(option->button, 
+                                 entry->data.radio_prefs.enabled);
+    }
+}
+
+static void radio_toggle_option_element( GtkWidget* widget, gpointer func_data)
+{
+    struct radio_option *option = (struct radio_option *)func_data;
+
+    if ( gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)) ) {
+        option->enabled = TRUE;
+    } else {
+        option->enabled = FALSE;
+    }
+}
+
 static void file_toggle_option( GtkWidget* widget, gpointer func_data)
 {
     struct prefentry *entry = (struct prefentry *)func_data;
@@ -522,6 +757,19 @@ void fill_ui(void)
     gtk_container_foreach(GTK_CONTAINER(vbox), empty_container, vbox);
     for ( entry = prefs; entry; entry = entry->next ) {
         switch(entry->type) {
+            case LABEL_PREF:
+                widget = gtk_label_new(entry->data.label_prefs.label);
+                gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, FALSE, 0);
+                gtk_misc_set_alignment(GTK_MISC(widget), 0, .5);
+                gtk_widget_show(widget);
+                break;
+
+            case SEPARATOR_PREF:
+                widget = gtk_hseparator_new();
+                gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, FALSE, 0);
+                gtk_widget_show(widget);
+                break;
+
             case BOOL_PREF:
                 /* Create the toggle button itself */
                 widget = gtk_check_button_new_with_label(
@@ -534,11 +782,50 @@ void fill_ui(void)
                 gtk_widget_show(widget);
                 break;
 
-            case LABEL_PREF:
-                widget = gtk_label_new(entry->data.label_prefs.label);
-                gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, FALSE, 0);
-                gtk_misc_set_alignment(GTK_MISC(widget), 0, .5);
+            case RADIO_PREF:
+                /* Create the toggle button or label itself */
+                if ( entry->data.radio_prefs.enabled == TRUE*2 ) {
+                    widget = gtk_label_new(entry->data.radio_prefs.label);
+                    gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, FALSE, 0);
+                    gtk_misc_set_alignment(GTK_MISC(widget), 0, .5);
+                } else {
+                    widget = gtk_check_button_new_with_label(
+                                entry->data.radio_prefs.label);
+                    gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, FALSE, 0);
+                    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+                                entry->data.radio_prefs.enabled);
+                    gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+                        GTK_SIGNAL_FUNC(radio_toggle_option), (gpointer)entry);
+                }
                 gtk_widget_show(widget);
+                { struct radio_option *option;
+                  GSList *radio_list = NULL;
+                    for ( option = entry->data.radio_prefs.options;
+                          option;
+                          option = option->next ) {
+                        /* Create an hbox for this line */
+                        hbox = gtk_hbox_new(FALSE, 4);
+                        gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+                        gtk_widget_show(hbox);
+
+                        /* Add a spacing label */
+                        widget = gtk_label_new("  ");
+                        gtk_box_pack_start(GTK_BOX(hbox), widget, FALSE, FALSE, 0);
+                        gtk_widget_show(widget);
+
+                        /* Add the radio button itself */
+                
+                        widget = gtk_radio_button_new_with_label(radio_list, option->label);
+                        gtk_box_pack_start(GTK_BOX(hbox), widget, FALSE, FALSE, 0);
+                        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), option->enabled);
+                        gtk_signal_connect(GTK_OBJECT(widget), "toggled",
+                            GTK_SIGNAL_FUNC(radio_toggle_option_element),
+                                            (gpointer)option);
+                        radio_list = gtk_radio_button_group(GTK_RADIO_BUTTON(widget));
+                        option->button = widget;
+                        gtk_widget_show(widget);
+                    }
+                }
                 break;
 
             case FILE_PREF:

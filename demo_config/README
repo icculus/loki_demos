@@ -11,8 +11,10 @@ Option2
 ...
 
 Each option line represents a command line option, in the format:
-BOOL <label> <true-option> <false-option> <value>
 LABEL <label>
+SEPARATOR
+BOOL <label> <true-option> <false-option> <value>
+RADIO <label> <enabled> OPTION <label> <value> <enabled> OPTION ...
 FILE <label> <formatted option> <value> <enabled>
 
 For example, Heavy Gear II has the following help:
@@ -31,11 +33,17 @@ Usage: hg2 [options]
 
 We might create a preferences file with the following contents:
 
-Heavy Gear II
+Heavy Gear II Demo Preferences
+SEPARATOR
+LABEL "General Options:"
+SEPARATOR
 BOOL "Fullscreen Mode"  "--fullscreen"  "--windowed"    TRUE
 BOOL "Sound Enabled"    ""              "--nosound"     TRUE
+SEPARATOR
 LABEL "OpenGL Options:"
-FILE "OpenGL Library"   "--opengl %s"   "libGL.so.1"    FALSE
-BOOL "Use compiled vertex arrays"   "--usecvas" ""      FALSE
-BOOL "Enable OpenGL fog"            "--fog"     ""      FALSE
-BOOL "Enable vertex fog"            "--vertex"  ""      FALSE
+SEPARATOR
+FILE "OpenGL Library"   "--opengl %s"   "libGL.so.1"    TRUE
+BOOL "Use compiled vertex arrays"   "--usecvas" ""      TRUE
+RADIO "Enable Fog" TRUE \
+    OPTION "OpenGL Fog (true fog)"            "--fog"     TRUE \
+    OPTION "3Dfx Fog (vertex fog)"            "--vertex"  FALSE
