@@ -21,7 +21,7 @@ LFLAGS += -lxml -lz
 LFLAGS += -Wl,-Bdynamic
 LFLAGS += -L/usr/X11R6/lib -lXi -lXext -lX11 -lm -ldl
 
-INSTALL := ../../../bin/$(ARCH)/$(LIBC)/$(TARGET)
+INSTALL := $(CDBASE)/bin/$(ARCH)/$(LIBC)/$(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS)
