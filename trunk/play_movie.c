@@ -19,6 +19,7 @@
     info@lokigames.com
 */
 
+#include <stdlib.h>
 #include "SDL.h"
 #include "SDL_mixer.h"
 #include <smpeg/smpeg.h>
