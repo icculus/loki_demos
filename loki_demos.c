@@ -117,7 +117,7 @@ static struct button {
         NULL, { NULL, NULL, NULL }
     },
     { 340, 382,     HIDDEN,  1,
-        { "demo_options_off.png", "demo_options_on.png", "demo_options_click.png" },
+        { "demo_options_off.png","demo_options_on.png","demo_options_click.png" },
         NULL, { NULL, NULL, NULL }
     },
     { 464, 382,     HIDDEN,  1,
@@ -229,6 +229,7 @@ static void free_sounds(void)
 {
     if ( click ) {
         Mix_FreeChunk(click);
+        click = NULL;
     }
 }
 
@@ -724,7 +725,7 @@ static void free_demos(void)
     hilited_demo = NULL;
 }
 
-static int init_ui(void)
+static int init_ui(int use_sound)
 {
     struct demo *demo;
     char last_demo_buf[128];
@@ -753,10 +754,14 @@ static int init_ui(void)
     SDL_WM_SetCaption("Loki Demo Launcher", "loki_demos");
 
     /* Open the audio */
-    Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 512);
+    if ( use_sound ) {
+        Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 512);
+    }
 
     /* Load everything */
-    load_sounds();
+    if ( use_sound ) {
+        load_sounds();
+    }
     load_images();
     load_demos();
 
@@ -851,7 +856,6 @@ static void show_plaque(const char *image)
     dst.w = screen->w;
     dst.h = screen->h;
     SDL_FillRect(screen, &dst, 0);
-    add_dirty_rect(&dst);
 
     /* Show the loading plaque */
     plaque = IMG_Load(image);
@@ -863,6 +867,7 @@ static void show_plaque(const char *image)
         SDL_BlitSurface(plaque, NULL, screen, &dst);
         SDL_FreeSurface(plaque);
     }
+    SDL_Flip(screen);
 }
 
 /* A version of system() that keeps the UI active */
@@ -944,7 +949,7 @@ static char *run_ui(int *done)
                 break;
             case SDL_MOUSEBUTTONUP:
                 /* Find out what portion of the UI is being activated */
-                if ( hilited_button ) {
+                if ( hilited_button && (hilited_button->state == CLICKED) ) {
                     for ( i=0; i<DEMOS; ++i ) {
                         if ( in_button(&images[i],
                                        event.button.x, event.button.y) ) {
@@ -1016,6 +1021,7 @@ static char *run_ui(int *done)
 
 int main(int argc, char *argv[])
 {
+    int use_sound;
     int done;
     char *demo;
 
@@ -1023,10 +1029,15 @@ int main(int argc, char *argv[])
     goto_installpath(argv[0]);
 
     /* Handle command line arguments */
+    use_sound = 1;
     if ( argv[1] && ((strcmp(argv[1], "--version") == 0) ||
                      (strcmp(argv[1], "-V") == 0)) ) {
         printf("Loki Demo CD " VERSION "\n");
         return(1);
+    }
+    if ( argv[1] && ((strcmp(argv[1], "--nosound") == 0) ||
+                     (strcmp(argv[1], "-s") == 0)) ) {
+        use_sound = 0;
     }
 
     /* Run the demo play loop */
@@ -1034,7 +1045,7 @@ int main(int argc, char *argv[])
     demo = NULL;
     while ( ! done ) {
         /* Initialize everything */
-        if ( init_ui() < 0 ) {
+        if ( init_ui(use_sound) < 0 ) {
             return(-1);
         }
 
