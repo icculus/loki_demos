@@ -10,7 +10,7 @@ ARCH    := $(shell sh print_arch)
 ifeq ($(ARCH), alpha)
 CFLAGS  += -mcpu=ev4 -Wa,-mall
 endif
-CDBASE := /loki/demos/loki_demos-$(VERSION)
+CDBASE := /loki/demos/loki_demos-$(shell echo $(VERSION))
 export CDBASE
 INSTALL := $(CDBASE)/bin/$(ARCH)/$(TARGET)
 DEMO_CONFIG := demo_config

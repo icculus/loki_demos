@@ -1,7 +1,10 @@
 1.0e:
+Sam Lantinga - Tue Jun  5 12:48:09 PDT 2001
+ * The website button now takes you to the web store.
+ * Clicking on the box now takes you to the product page.
 Sam Lantinga - Mon Jun  4 11:39:12 PDT 2001
  * Added a custom menu path specification file, "menu.txt"
- * Updated the year graphic to the year 2001
+ * Updated the year graphic to the year 2001.
  * Added a graphic to be displayed when there are no demos available.
 
 1.0d:

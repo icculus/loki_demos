@@ -41,6 +41,7 @@
 
 #define PRODUCT     "Loki_Demos"
 #define LOGO_URL    "http://www.lokigames.com/"
+#define STORE_URL   "http://www.lokigames.com/orders/"
 #define MENU            "menu"
 #define LAUNCH_PLAQUE   "/launch.png"
 #define CONFIG_PLAQUE   "/config.png"
@@ -1017,7 +1018,7 @@ static char *run_ui(int *done)
                                     draw_ui();
                                     break;
                                 case WEBSITE:
-                                    loki_launchURL(current_demo->website);
+                                    loki_launchURL(STORE_URL);
                                     break;
                                 case QUIT:
                                     *done = 1;
@@ -1033,6 +1034,10 @@ static char *run_ui(int *done)
                                 activate_button(&list->icon);
                                 activate_demo(list);
                             }
+                        }
+                        if ( in_button(&current_demo->box,
+                                       event.button.x, event.button.y) ) {
+                            loki_launchURL(current_demo->website);
                         }
                     }
                 }
