@@ -769,7 +769,7 @@ static int init_ui(int use_sound)
     draw_ui();
 
     /* Select the last demo that was launched */
-    demo = demos;
+    demo = NULL;
     last_demo = get_last_demo(last_demo_buf, sizeof(last_demo_buf));
     if ( last_demo ) {
         while ( demo ) {
@@ -778,6 +778,9 @@ static int init_ui(int use_sound)
             }
             demo = demo->next;
         }
+    }
+    if ( ! demo ) {
+        demo = demos;
     }
     activate_demo(demo);
 
