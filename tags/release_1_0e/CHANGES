@@ -1,0 +1,14 @@
+1.0e:
+Sam Lantinga - Mon Jun  4 11:39:12 PDT 2001
+ * Added a custom menu path specification file, "menu.txt"
+ * Updated the year graphic to the year 2001
+ * Added a graphic to be displayed when there are no demos available.
+
+1.0d:
+Sam Lantinga - Sun Nov 19 18:37:16 PST 2000
+ * Fixed regression where the last launched demo wasn't remembered.
+
+1.0c:
+Sam Lantinga - Sat Nov 18 16:02:19 PST 2000
+ * Fixed problem with movie playback when there audio isn't available.
+ * Always select the first demo if the last selected demo isn't available.
