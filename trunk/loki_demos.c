@@ -772,6 +772,7 @@ static int init_ui(int use_sound)
     demo = NULL;
     last_demo = get_last_demo(last_demo_buf, sizeof(last_demo_buf));
     if ( last_demo ) {
+        demo = demos;
         while ( demo ) {
             if ( strcasecmp(last_demo, demo->name) == 0 ) {
                 break;
