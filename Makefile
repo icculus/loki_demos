@@ -11,6 +11,7 @@ ifeq ($(ARCH), alpha)
 CFLAGS  += -mcpu=ev4 -Wa,-mall
 endif
 INSTALL := ../../bin/$(ARCH)/$(TARGET)
+DEMO_CONFIG := demo_config
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS) -static
@@ -20,6 +21,8 @@ install: $(TARGET)
 	@cp -p $(TARGET) $(INSTALL)
 	@strip $(INSTALL)
 	-brandelf -t $(shell uname -s) $(INSTALL)
+	make -C $(DEMO_CONFIG) $@
 
 clean:
 	rm -f $(TARGET) *.o
+	make -C $(DEMO_CONFIG) $@
