@@ -34,7 +34,6 @@ void play_movie(const char *movie, int depth)
     SMPEG_Info info;
     SMPEG_Filter *filter;
     int done;
-    SDL_AudioSpec audiofmt;
     Uint16 format;
     int freq, channels;
 
@@ -64,12 +63,20 @@ void play_movie(const char *movie, int depth)
     }
 
     /* Hook it up to the mixer */
-    Mix_QuerySpec(&freq, &format, &channels);
-    audiofmt.format = format;
-    audiofmt.freq = freq;
-    audiofmt.channels = channels;
-    SMPEG_actualSpec(mpeg, &audiofmt);
-    Mix_HookMusic(SMPEG_playAudioSDL, mpeg);
+    SMPEG_enableaudio(mpeg, 0);
+    if ( Mix_QuerySpec(&freq, &format, &channels) ) {
+        SDL_AudioSpec audiofmt;
+
+        /* Tell SMPEG what the audio format is */
+        audiofmt.format = format;
+        audiofmt.freq = freq;
+        audiofmt.channels = channels;
+        SMPEG_actualSpec(mpeg, &audiofmt);
+
+        /* Hook in the MPEG music mixer */
+        Mix_HookMusic(SMPEG_playAudioSDL, mpeg);
+        SMPEG_enableaudio(mpeg, 1);
+    }
 
     /* Set up a bilinear filter for the video */
     filter = SMPEGfilter_bilinear();
