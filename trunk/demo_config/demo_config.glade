@@ -55,7 +55,7 @@
       <widget>
 	<class>GtkPixmap</class>
 	<name>pixmap1</name>
-	<filename>demo_prefs.xpm</filename>
+	<filename>demo_config.xpm</filename>
 	<xalign>0.5</xalign>
 	<yalign>0.5</yalign>
 	<xpad>0</xpad>
@@ -276,6 +276,8 @@
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_CENTER</position>
   <modal>False</modal>
+  <default_width>320</default_width>
+  <default_height>200</default_height>
   <allow_shrink>True</allow_shrink>
   <allow_grow>True</allow_grow>
   <auto_shrink>False</auto_shrink>
@@ -290,11 +292,9 @@
     <widget>
       <class>GtkLabel</class>
       <name>message_label</name>
-      <width>256</width>
-      <height>64</height>
-      <label>[message text]</label>
+      <label>Unable to load preferences for mindrover demo</label>
       <justify>GTK_JUSTIFY_CENTER</justify>
-      <wrap>False</wrap>
+      <wrap>True</wrap>
       <xalign>0.5</xalign>
       <yalign>0.5</yalign>
       <xpad>0</xpad>
