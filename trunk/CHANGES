@@ -1,0 +1,4 @@
+1.0c:
+Sam Lantinga - Sat Nov 18 16:02:19 PST 2000
+ * Fixed problem with movie playback when there audio isn't available.
+ * Always select the first demo if the last selected demo isn't available.
