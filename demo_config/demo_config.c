@@ -14,7 +14,7 @@
 #include <gtk/gtk.h>
 #include <glade/glade.h>
 
-#define PREFS_GLADE "demo_prefs.glade"
+#define PREFS_GLADE "demo_config.glade"
 
 static const char *product;
 static char *title;
@@ -649,7 +649,10 @@ void save_button_slot(GtkWidget *w, gpointer data)
 {
     if ( save_prefs(product) < 0 ) {
         quit_ui();
-        message("Unable to save preferences");
+        { char msg[128];
+            sprintf(msg, "Unable to save preferences for %s", product);
+            message(msg);
+        }
     } else {
         gtk_main_quit();
     }
@@ -882,7 +885,10 @@ int main(int argc, char *argv[])
     }
     if ( load_prefs(product) < 0 ) {
         quit_ui();
-        message("Unable to load preferences");
+        { char msg[128];
+            sprintf(msg, "Unable to load preferences for %s", product);
+            message(msg);
+        }
         return(-1);
     }
     fill_ui();
