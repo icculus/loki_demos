@@ -601,7 +601,7 @@ static void load_demo(const char *demo_name)
         /* Load the extra informational icon */
         sprintf(path, "demos/%s/launch/extra.png", demo_name);
         load_button(&demo->extra, path, NULL, NULL, HIDDEN);
-        set_button_xy(&demo->extra, 514, 284);
+        set_button_xy(&demo->extra, 514, 244);
 
         /* Add the demo to our list */
         prev = NULL;
@@ -981,6 +981,13 @@ int main(int argc, char *argv[])
 
     /* Go to the directory where we are installed, for our data files */
     goto_installpath(argv[0]);
+
+    /* Handle command line arguments */
+    if ( argv[1] && ((strcmp(argv[1], "--version") == 0) ||
+                     (strcmp(argv[1], "-V") == 0)) ) {
+        printf("Loki Demo CD " VERSION "\n");
+        return(1);
+    }
 
     /* Run the demo play loop */
     done = 0;
