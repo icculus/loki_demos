@@ -1,6 +1,6 @@
 
 TARGET  := loki_demos
-VERSION := \"1.0d\"
+VERSION := \"1.0e\"
 OBJS	:= loki_demos.o play_movie.o loki_launchurl.o
 CFLAGS  := -g -Wall -DVERSION=$(VERSION)
 CFLAGS  += $(shell sdl-config --cflags)
@@ -10,7 +10,9 @@ ARCH    := $(shell sh print_arch)
 ifeq ($(ARCH), alpha)
 CFLAGS  += -mcpu=ev4 -Wa,-mall
 endif
-INSTALL := ../../bin/$(ARCH)/$(TARGET)
+CDBASE := /loki/demos/loki_demos-$(VERSION)
+export CDBASE
+INSTALL := $(CDBASE)/bin/$(ARCH)/$(TARGET)
 DEMO_CONFIG := demo_config
 
 $(TARGET): $(OBJS)

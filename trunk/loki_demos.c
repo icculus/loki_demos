@@ -41,9 +41,9 @@
 
 #define PRODUCT     "Loki_Demos"
 #define LOGO_URL    "http://www.lokigames.com/"
-#define MENU        "menu"
-#define LAUNCH_PLAQUE   MENU "/launch.png"
-#define CONFIG_PLAQUE   MENU "/config.png"
+#define MENU            "menu"
+#define LAUNCH_PLAQUE   "/launch.png"
+#define CONFIG_PLAQUE   "/config.png"
 #define CONFIG_APPLET   "./demo_config"
 #define MAX_PER_ROW 8
 #define DEMO_PANEL_X        70
@@ -71,6 +71,7 @@ enum {
     OPTIONS,
     WEBSITE,
     QUIT,
+    EMPTY,
     DEMOS
 };
 
@@ -101,7 +102,7 @@ static struct button {
         NULL, { NULL, NULL, NULL }
     },
     { 192,  46,     NORMAL,  0,
-        { "demodisc_2000.png",NULL,NULL },
+        { "demodisc_2001.png",NULL,NULL },
         NULL, { NULL, NULL, NULL }
     },
     { 470,  46,     NORMAL,  1,
@@ -126,6 +127,10 @@ static struct button {
     },
     { 584, 446,     NORMAL,  1,
         { "quit_off.png","quit_on.png",NULL },
+        NULL, { NULL, NULL, NULL }
+    },
+    { DEMO_PANEL_X, DEMO_PANEL_Y,   HIDDEN, 0,
+        { "empty_demos.png",NULL,NULL },
         NULL, { NULL, NULL, NULL }
     }
 };
@@ -213,9 +218,32 @@ static void goto_installpath(char *argv0)
     }
 }
 
+static void get_menu_path(const char *file, char *path, int maxlen)
+{
+    static char menu[128];
+
+    if ( menu[0] == '\0' ) {
+        FILE *fp;
+
+        fp = fopen("menu.txt", "r");
+        if ( fp ) {
+            if ( fgets(menu, sizeof(menu), fp) ) {
+                menu[strlen(menu)-1] = '\0';
+            }
+            fclose(fp);
+        } else {
+            strcpy(menu, MENU);
+        }
+    }
+    snprintf(path, maxlen, "%s/%s", menu, file);
+}
+
 static void load_sounds(void)
 {
-    click = Mix_LoadWAV(MENU "/click.wav");
+    char path[128];
+
+    get_menu_path("click.wav", path, sizeof(path));
+    click = Mix_LoadWAV(path);
 }
 
 static void play_click(void)
@@ -310,7 +338,7 @@ static void draw_button(struct button *button)
 {
     SDL_Rect area;
 
-    if ( button->state != HIDDEN ) {
+    if ( button->state != HIDDEN && button->frame ) {
         area.x = button->x;
         area.y = button->y;
         area.w = button->frame->w;
@@ -403,9 +431,9 @@ static void load_images(void)
     for ( i=0; i<(sizeof images)/(sizeof images[0]); ++i ) {
         for ( state=0; state<NUM_STATES; ++state ) {
             if ( images[i].files[state] ) {
-                sprintf(path, "%s/%s", MENU, images[i].files[state]);
+                get_menu_path(images[i].files[state], path, sizeof(path));
                 images[i].frames[state] = IMG_Load(path);
-                if ( ! images[i].frames[state] ) {
+                if ( ! images[i].frames[state] && (i != EMPTY) ) {
                     fprintf(stderr, "Warning: couldn't load %s\n",
                             images[i].files[state]);
                 }
@@ -710,6 +738,9 @@ static void load_demos(void)
             demo->icon.y+demo->icon.frame->h + 4);
         ++num_demos;
     }
+    if ( num_demos == 0 ) {
+        images[EMPTY].state = NORMAL;
+    }
 }
 
 static void free_demos(void)
@@ -852,7 +883,7 @@ static void show_plaque(const char *image)
 {
     SDL_Surface *plaque;
     SDL_Rect dst;
-
+    char path[128];
 
     /* Clear the screen */
     dst.x = 0;
@@ -862,7 +893,8 @@ static void show_plaque(const char *image)
     SDL_FillRect(screen, &dst, 0);
 
     /* Show the loading plaque */
-    plaque = IMG_Load(image);
+    get_menu_path(image, path, sizeof(path));
+    plaque = IMG_Load(path);
     if ( plaque ) {
         dst.x = (screen->w - plaque->w)/2;
         dst.y = (screen->h - plaque->h)/2;
