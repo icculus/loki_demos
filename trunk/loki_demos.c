@@ -41,6 +41,10 @@
 
 #define PRODUCT     "Loki_Demos"
 #define LOGO_URL    "http://www.lokigames.com/"
+#define MENU        "menu"
+#define LAUNCH_PLAQUE   MENU "/launch.png"
+#define CONFIG_PLAQUE   MENU "/config.png"
+#define CONFIG_APPLET   "./demo_config"
 #define MAX_PER_ROW 8
 #define DEMO_PANEL_X        70
 #define DEMO_PANEL_XSPACE   64
@@ -64,7 +68,8 @@ enum {
     UPDATE,
     TRAILER,
     PLAY,
-    HOME,
+    OPTIONS,
+    WEBSITE,
     QUIT,
     DEMOS
 };
@@ -111,8 +116,12 @@ static struct button {
         { "playdemo_off.png", "playdemo_on.png", "playdemo_click.png" },
         NULL, { NULL, NULL, NULL }
     },
-    { 470, 382,     HIDDEN,  1,
-        { "productpage_off.png","productpage_on.png","productpage_click.png" },
+    { 340, 382,     HIDDEN,  1,
+        { "demo_options_off.png", "demo_options_on.png", "demo_options_click.png" },
+        NULL, { NULL, NULL, NULL }
+    },
+    { 464, 382,     HIDDEN,  1,
+        { "website_off.png", "website_on.png", "website_click.png" },
         NULL, { NULL, NULL, NULL }
     },
     { 584, 446,     NORMAL,  1,
@@ -127,9 +136,8 @@ static int num_demos;
 struct demo {
     char *name;
     int row, col;
-    char *command;
     char *trailer;
-    char *home;
+    char *website;
     struct button box;
     struct button caption;
     struct button text;
@@ -207,7 +215,7 @@ static void goto_installpath(char *argv0)
 
 static void load_sounds(void)
 {
-    click = Mix_LoadWAV("menu/click.wav");
+    click = Mix_LoadWAV(MENU "/click.wav");
 }
 
 static void play_click(void)
@@ -394,7 +402,7 @@ static void load_images(void)
     for ( i=0; i<(sizeof images)/(sizeof images[0]); ++i ) {
         for ( state=0; state<NUM_STATES; ++state ) {
             if ( images[i].files[state] ) {
-                sprintf(path, "menu/%s", images[i].files[state]);
+                sprintf(path, "%s/%s", MENU, images[i].files[state]);
                 images[i].frames[state] = IMG_Load(path);
                 if ( ! images[i].frames[state] ) {
                     fprintf(stderr, "Warning: couldn't load %s\n",
@@ -419,7 +427,8 @@ static void free_images(void)
 
     /* Hide all the normally hidden buttons */
     hilited_button = NULL;
-    hide_button(&images[HOME]);
+    hide_button(&images[WEBSITE]);
+    hide_button(&images[OPTIONS]);
     hide_button(&images[TRAILER]);
     hide_button(&images[PLAY]);
 
@@ -515,14 +524,11 @@ static void free_demo(struct demo *demo)
     if ( demo->name ) {
         free(demo->name);
     }
-    if ( demo->command ) {
-        free(demo->command);
-    }
     if ( demo->trailer ) {
         free(demo->trailer);
     }
-    if ( demo->home ) {
-        free(demo->home);
+    if ( demo->website ) {
+        free(demo->website);
     }
     free_button(&demo->box);
     free_button(&demo->icon);
@@ -551,10 +557,6 @@ static void load_demo(const char *demo_name)
             return;
         }
 
-        /* Load the command used to launch the demo */
-        sprintf(path, "demos/%s/launch/launch.txt", demo_name);
-        demo->command = read_line(path);
-
         /* Load the trailer for this game */
         sprintf(path, "demos/%s/trailer.mpg", demo_name);
         if ( access(path, R_OK) == 0 ) {
@@ -565,7 +567,7 @@ static void load_demo(const char *demo_name)
 
         /* Load the homepage for the game */
         sprintf(path, "demos/%s/launch/website.txt", demo_name);
-        demo->home = read_line(path);
+        demo->website = read_line(path);
 
         /* Load the game icon */
         sprintf(icon_normal, "demos/%s/launch/box_off.png", demo_name);
@@ -653,7 +655,8 @@ static void activate_demo(struct demo *demo)
         hide_button(&previous_demo->box);
         hide_button(&previous_demo->text);
         hide_button(&previous_demo->extra);
-        hide_button(&images[HOME]);
+        hide_button(&images[WEBSITE]);
+        hide_button(&images[OPTIONS]);
         hide_button(&images[TRAILER]);
         hide_button(&images[PLAY]);
     }
@@ -664,14 +667,14 @@ static void activate_demo(struct demo *demo)
         show_button(&current_demo->box);
         show_button(&current_demo->text);
         show_button(&current_demo->extra);
-        if ( current_demo->home ) {
-            show_button(&images[HOME]);
+        if ( current_demo->website ) {
+            show_button(&images[WEBSITE]);
         }
         if ( current_demo->trailer ) {
             show_button(&images[TRAILER]);
-        } else
-        if ( current_demo->command ) {
+        } else {
             show_button(&images[PLAY]);
+            show_button(&images[OPTIONS]);
         }
         save_last_demo(current_demo->name);
     }
@@ -836,7 +839,7 @@ static int in_demo_panel(int x, int y)
     return(0);
 }
 
-static void show_launch_plaque(void)
+static void show_plaque(const char *image)
 {
     SDL_Surface *plaque;
     SDL_Rect dst;
@@ -851,7 +854,7 @@ static void show_launch_plaque(void)
     add_dirty_rect(&dst);
 
     /* Show the loading plaque */
-    plaque = IMG_Load("menu/launch.png");
+    plaque = IMG_Load(image);
     if ( plaque ) {
         dst.x = (screen->w - plaque->w)/2;
         dst.y = (screen->h - plaque->h)/2;
@@ -860,6 +863,34 @@ static void show_launch_plaque(void)
         SDL_BlitSurface(plaque, NULL, screen, &dst);
         SDL_FreeSurface(plaque);
     }
+}
+
+/* A version of system() that keeps the UI active */
+static int system_ui(const char *command)
+{
+    pid_t child;
+    int status;
+
+    child = fork();
+    switch(child) {
+        case -1:
+            perror("fork() failed");
+            return(-1);
+        case 0:
+            /* Child */
+            execl("/bin/sh", "sh", "-c", command, NULL);
+            perror("Couldn't exec /bin/sh");
+            _exit(-1);
+        default:
+            /* Parent */
+            break;
+    }
+    /* Wait for the child process to return */
+    while ( waitpid(child, &status, WNOHANG) != child ) {
+        SDL_PumpEvents();
+        SDL_Delay(500);
+    }
+    return(status);
 }
 
 static char *run_ui(int *done)
@@ -932,11 +963,20 @@ static char *run_ui(int *done)
                                     draw_ui();
                                     break;
                                 case PLAY:
-                                    command = strdup(current_demo->command);
-                                    show_launch_plaque();
+                                    command = strdup(current_demo->name);
+                                    show_plaque(LAUNCH_PLAQUE);
                                     break;
-                                case HOME:
-                                    loki_launchURL(current_demo->home);
+                                case OPTIONS:
+                                    show_plaque(CONFIG_PLAQUE);
+                                    { char commandline[1024];
+                                        sprintf(commandline, "%s %s",
+                                            CONFIG_APPLET, current_demo->name);
+                                        system_ui(commandline);
+                                    }
+                                    draw_ui();
+                                    break;
+                                case WEBSITE:
+                                    loki_launchURL(current_demo->website);
                                     break;
                                 case QUIT:
                                     *done = 1;
@@ -977,7 +1017,7 @@ static char *run_ui(int *done)
 int main(int argc, char *argv[])
 {
     int done;
-    char *command;
+    char *demo;
 
     /* Go to the directory where we are installed, for our data files */
     goto_installpath(argv[0]);
@@ -991,7 +1031,7 @@ int main(int argc, char *argv[])
 
     /* Run the demo play loop */
     done = 0;
-    command = NULL;
+    demo = NULL;
     while ( ! done ) {
         /* Initialize everything */
         if ( init_ui() < 0 ) {
@@ -999,19 +1039,44 @@ int main(int argc, char *argv[])
         }
 
         /* Wait for the user to either quit or select a demo */
-        while ( ! done && ! command ) {
+        while ( ! done && ! demo ) {
             /* Be nice and don't hog the CPU */
             SDL_Delay(20);
 
-            command = run_ui(&done);
+            demo = run_ui(&done);
         }
 
         /* Clean up and play selected demo, if any */
         quit_ui();
-        if ( command ) {
-            system(command);
-            free(command);
-            command = NULL;
+        if ( demo ) {
+            char launch_path[PATH_MAX];
+            char commandline[PATH_MAX*2];
+            FILE *fp;
+
+            /* Load the demo launch command */
+            sprintf(launch_path, "%s/.loki/loki_demos/%s/launch.txt",
+                    getenv("HOME"), demo);
+            fp = fopen(launch_path, "r");
+            if ( ! fp ) {   /* Need to run the preferences applet */
+                sprintf(launch_path, "demos/%s/launch/launch.txt", demo);
+                fp = fopen(launch_path, "r");
+            }
+            /* Read the command line from the launch.txt file */
+            commandline[0] = '\0';
+            if ( fp ) {
+                if ( fgets(commandline, sizeof(commandline), fp) ) {
+                    commandline[strlen(commandline)-1] = '\0';
+                }
+                fclose(fp);
+            }
+            /* If we succeeded, run the command line */
+            if ( commandline[0] ) {
+                system_ui(commandline);
+            } else {
+                fprintf(stderr, "Unable to read launch.txt for %s\n", demo);
+            }
+            free(demo);
+            demo = NULL;
         }
     }
     SDL_Quit();
