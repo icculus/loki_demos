@@ -9,7 +9,7 @@ ARCH    := $(shell sh print_arch)
 ifeq ($(ARCH), alpha)
 CFLAGS  += -mcpu=ev4 -Wa,-mall
 endif
-INSTALL := ../bin/$(ARCH)/$(TARGET)
+INSTALL := ../../bin/$(ARCH)/$(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS) -static

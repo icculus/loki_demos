@@ -739,13 +739,17 @@ static int init_ui(void)
         movie_depth = 16;
     }
 
-    /* Set the video mode and start audio */
+    /* Set the video mode and set the icon and title bar */
     screen = SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE);
     if ( ! screen ) {
         fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
         SDL_Quit();
         return(-1);
     }
+    SDL_WM_SetIcon(SDL_LoadBMP("icon.bmp"), NULL);
+    SDL_WM_SetCaption("Loki Demo Launcher", "loki_demos");
+
+    /* Open the audio */
     Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 512);
 
     /* Load everything */
@@ -910,9 +914,10 @@ static char *run_ui(int *done)
             case SDL_MOUSEBUTTONUP:
                 /* Find out what portion of the UI is being activated */
                 if ( hilited_button ) {
-                    activate_button(hilited_button);
                     for ( i=0; i<DEMOS; ++i ) {
-                        if ( hilited_button == &images[i] ) {
+                        if ( in_button(&images[i],
+                                       event.button.x, event.button.y) ) {
+                            activate_button(&images[i]);
                             switch (i) {
                                 case LOGO:
                                     loki_launchURL(LOGO_URL);
@@ -942,7 +947,9 @@ static char *run_ui(int *done)
                     }
                     if ( i == DEMOS ) {
                         for ( list=demos; list; list=list->next ) {
-                            if ( hilited_button == &list->icon ) {
+                            if ( in_button(&list->icon,
+                                           event.button.x, event.button.y) ) {
+                                activate_button(&list->icon);
                                 activate_demo(list);
                             }
                         }
