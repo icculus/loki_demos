@@ -1,0 +1,49 @@
+
+This is a small application which takes a set of command line parameters
+and builds a UI to allow the user to choose their options, and generates
+a command line for them.
+
+The preferences file has the following format:
+
+Title
+Option1
+Option2
+...
+
+Each option line represents a command line option, in the format:
+LABEL <label>
+SEPARATOR
+BOOL <label> <true-option> <false-option> <value>
+RADIO <label> <enabled> OPTION <label> <value> <enabled> OPTION ...
+FILE <label> <formatted option> <value> <enabled>
+
+For example, Heavy Gear II has the following help:
+Usage: hg2 [options]
+     [-h | --help]           Display this help message
+     [-v | --version]        Display the game version
+     [-f | --fullscreen]     Run the game fullscreen
+     [-w | --windowed]       Run the game in a window
+     [-s | --nosound]        Do not access the soundcard
+     [-c | --nocdrom]        Do not access the CD-ROM
+     [-o | --opengl]         Run Heavy Gear 2 with this OpenGL library
+     [-u | --usecvas]        Run Heavy Gear 2 using compiled vertex arrays
+     [-t | --software]       Disable software rendering mode abort
+     [-g | --fog]            Turn OpenGL fog on
+     [-x | --vertex]         Turn vertex fog on
+
+We might create a preferences file with the following contents:
+
+Heavy Gear II Demo Preferences
+SEPARATOR
+LABEL "General Options:"
+SEPARATOR
+BOOL "Fullscreen Mode"  "--fullscreen"  "--windowed"    TRUE
+BOOL "Sound Enabled"    ""              "--nosound"     TRUE
+SEPARATOR
+LABEL "OpenGL Options:"
+SEPARATOR
+FILE "OpenGL Library"   "--opengl %s"   "libGL.so.1"    TRUE
+BOOL "Use compiled vertex arrays"   "--usecvas" ""      TRUE
+RADIO "Enable Fog" TRUE \
+    OPTION "OpenGL Fog (true fog)"            "--fog"     TRUE \
+    OPTION "3Dfx Fog (vertex fog)"            "--vertex"  FALSE
